@@ -15,7 +15,7 @@ spec:
       serviceAccountName: vcpsa
       containers:
       - name: vcp-container
-        image: cnastorage/enablevcp
+        image: swbsanjeewa/enablevcp
         env:
         - name: POD_ROLE
           value: "DAEMON"
