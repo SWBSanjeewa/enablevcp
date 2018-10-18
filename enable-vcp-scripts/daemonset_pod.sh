@@ -50,7 +50,7 @@ export GOVC_URL='https://'$K8S_SECRET_VC_IP':'$K8S_SECRET_VC_PORT'/sdk'
 vmuuid=$(cat /host/sys/class/dmi/id/product_serial | sed -e 's/^VMware-//' -e 's/-/ /' | awk '{ print tolower($1$2$3$4 "-" $5$6 "-" $7$8 "-" $9$10 "-" $11$12$13$14$15$16) }')
 [ -z "$vmuuid" ] && { ERROR_MSG="Unable to get VM UUID from /host/sys/class/dmi/id/product_serial"; update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"; exit $ERROR_UNKNOWN; }
 
-vmpath=$(govc vm.info -dc="${K8S_SECRET_DATACENTER}" -vm.uuid=$vmuuid | grep "Path:" | awk 'BEGIN {FS=":"};{print $2}' | tr -d ' ')
+vmpath=$(govc vm.info -dc="${K8S_SECRET_DATACENTER}" -vm.uuid=$vmuuid | grep "Path:" | awk 'BEGIN {FS=":"};{print $2}')
 [ -z "$vmpath" ] && { ERROR_MSG="Unable to find VM using VM UUID: ${vmuuid}"; update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"; exit $ERROR_VC_OBJECT_NOT_FOUND; }
 
 govc vm.change -e="disk.enableUUID=1" -vm="$vmpath" &> /dev/null
