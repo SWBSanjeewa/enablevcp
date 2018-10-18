@@ -18,12 +18,12 @@ update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_RUNNING" ""
 echo "Running script in the Pod:" $POD_NAME "deployed on the Node:" $NODE_NAME
 # read secret keys from volume /secret-volume/ and set values in an environment
 read_secret_keys
-backupdir=/host/${K8S_SECRET_CONFIG_BACKUP}
+backupdir=//${K8S_SECRET_CONFIG_BACKUP}
 
 if [ "$K8S_SECRET_ROLL_BACK_SWITCH" == "on" ]; then
-      ls /host/tmp/vcp-rollback-complete &> /dev/null
+      ls /tmp/vcp-rollback-complete &> /dev/null
       if [ $? -eq 0 ]; then
-          echo "[INFO] Found flag file: '/host/tmp/vcp-rollback-complete' Observed that VCP Configuration Rollback is complete"
+          echo "[INFO] Found flag file: '/tmp/vcp-rollback-complete' Observed that VCP Configuration Rollback is complete"
       else
         perform_rollback "$K8S_SECRET_CONFIG_BACKUP" "$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST" "$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST" "$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE"
         echo "[INFO] Rollback complete"
@@ -31,9 +31,9 @@ if [ "$K8S_SECRET_ROLL_BACK_SWITCH" == "on" ]; then
       python -c 'while 1: import ctypes; ctypes.CDLL(None).pause()'
 fi
 
-ls /host/tmp/vcp-configuration-complete &> /dev/null
+ls /tmp/vcp-configuration-complete &> /dev/null
 if [ $? -eq 0 ]; then
-    echo "[INFO] Found flag file: '/host/tmp/vcp-configuration-complete'. Observed that VCP Configuration is complete"
+    echo "[INFO] Found flag file: '/tmp/vcp-configuration-complete'. Observed that VCP Configuration is complete"
     python -c 'while 1: import ctypes; ctypes.CDLL(None).pause()'
 fi
 
@@ -47,8 +47,8 @@ export GOVC_PASSWORD=$K8S_SECRET_VC_ADMIN_PASSWORD
 export GOVC_URL='https://'$K8S_SECRET_VC_IP':'$K8S_SECRET_VC_PORT'/sdk'
 
 # Get VM's UUID, Find VM Path using VM UUID and set disk.enableUUID to 1 on the VM
-vmuuid=$(cat /host/sys/class/dmi/id/product_serial | sed -e 's/^VMware-//' -e 's/-/ /' | awk '{ print tolower($1$2$3$4 "-" $5$6 "-" $7$8 "-" $9$10 "-" $11$12$13$14$15$16) }')
-[ -z "$vmuuid" ] && { ERROR_MSG="Unable to get VM UUID from /host/sys/class/dmi/id/product_serial"; update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"; exit $ERROR_UNKNOWN; }
+vmuuid=$(cat /sys/class/dmi/id/product_serial | sed -e 's/^VMware-//' -e 's/-/ /' | awk '{ print tolower($1$2$3$4 "-" $5$6 "-" $7$8 "-" $9$10 "-" $11$12$13$14$15$16) }')
+[ -z "$vmuuid" ] && { ERROR_MSG="Unable to get VM UUID from /sys/class/dmi/id/product_serial"; update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"; exit $ERROR_UNKNOWN; }
 
 vmpath=$(govc vm.info -dc="${K8S_SECRET_DATACENTER}" -vm.uuid=$vmuuid | grep "Path:" | awk 'BEGIN {FS=":"};{print $2}' | awk '{gsub(/^ +| +$/,"")}1')
 [ -z "$vmpath" ] && { ERROR_MSG="Unable to find VM using VM UUID: ${vmuuid}"; update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"; exit $ERROR_VC_OBJECT_NOT_FOUND; }
@@ -105,29 +105,29 @@ if [ $? -ne 0 ]; then
 fi
 
 # Verify that the directory for the vSphere Cloud Provider configuration file is accessible.
-ls /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION &> /dev/null
+ls /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION &> /dev/null
 if [ $? -eq 0 ]; then
-    echo "[INFO] Verified that the directory for the vSphere Cloud Provider configuration file is accessible. Path: /host/${K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION}"
+    echo "[INFO] Verified that the directory for the vSphere Cloud Provider configuration file is accessible. Path: /${K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION}"
 else
-    mkdir -p /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION
+    mkdir -p /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Unable to Create Directory: /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION for vSphere Conf file"
+        ERROR_MSG="Unable to Create Directory: /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION for vSphere Conf file"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_VSPHERE_CONF_DIRECTORY_NOT_PRESENT
     fi
-    chmod 0750 /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION
-    ls /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION &> /dev/null
+    chmod 0750 /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION
+    ls /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION &> /dev/null
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Directory (/host/${K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION}) for vSphere Cloud Provider Configuration file is not present"
+        ERROR_MSG="Directory (/${K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION}) for vSphere Cloud Provider Configuration file is not present"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_VSPHERE_CONF_DIRECTORY_NOT_PRESENT
     fi
 fi
 
-ls /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf &> /dev/null
+ls /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf &> /dev/null
 if [ $? -eq 0 ]; then
-    echo "[INFO] vsphere.conf file is already available at /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf"
-    cp /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf $backupdir/vsphere.conf
+    echo "[INFO] vsphere.conf file is already available at /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf"
+    cp /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf $backupdir/vsphere.conf
     if [ $? -eq 0 ]; then
         echo "[INFO] Existing vsphere.conf file is copied to ${backupdir}/vsphere.conf"
     else
@@ -138,13 +138,13 @@ if [ $? -eq 0 ]; then
 fi
 
 # locate and back up manifest files and kubelet service configuration file.
-file=/host$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST
+file=$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST
 locate_validate_and_backup_files $file $backupdir $POD_NAME
 
-file=/host$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST
+file=$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST
 locate_validate_and_backup_files $file $backupdir $POD_NAME
 
-file=/host$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE
+file=$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE
 locate_validate_and_backup_files $file $backupdir $POD_NAME
 
 PHASE=$DAEMONSET_SCRIPT_PHASE5
@@ -152,9 +152,9 @@ update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_RUNNING" ""
 
 # Create vSphere Cloud Provider configuration file
 
-ls /host/tmp/vsphere.conf &> /dev/null
+ls /tmp/vsphere.conf &> /dev/null
 if [ $? -ne 0 ]; then
-    echo "[INFO] Creating vSphere Cloud Provider configuration file at /host/tmp/vsphere.conf"
+    echo "[INFO] Creating vSphere Cloud Provider configuration file at /tmp/vsphere.conf"
     echo "[Global]
         user = ""\"${K8S_SECRET_VCP_USERNAME}"\""
         password = ""\"${K8S_SECRET_VCP_PASSWORD}"\""
@@ -165,12 +165,12 @@ if [ $? -ne 0 ]; then
         datastore = ""\"${K8S_SECRET_DEFAULT_DATASTORE}"\""
         working-dir = ""\"${K8S_SECRET_NODE_VMS_FOLDER}"\""
     [Disk]
-        scsicontrollertype = pvscsi" > /host/tmp/vsphere.conf
+        scsicontrollertype = pvscsi" > /tmp/vsphere.conf
 
     if [ $? -eq 0 ]; then
-        echo "[INFO] successfully created vSphere.conf file at : /host/tmp/vsphere.conf"
+        echo "[INFO] successfully created vSphere.conf file at : /tmp/vsphere.conf"
     else
-        ERROR_MSG="Failed to create vsphere.conf file at : /host/tmp/vsphere.conf"
+        ERROR_MSG="Failed to create vsphere.conf file at : /tmp/vsphere.conf"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "FAILED" "$ERROR_MSG"
         exit $ERROR_FAIL_TO_CREATE_FILE
     fi
@@ -180,24 +180,24 @@ PHASE=$DAEMONSET_SCRIPT_PHASE6
 update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_RUNNING" ""
 
 # update manifest files
-ls /host/$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST &> /dev/null
+ls /$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST &> /dev/null
 if [ $? -eq 0 ]; then
-    echo "[INFO] Found file: /host/$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST"
+    echo "[INFO] Found file: /$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST"
     if [ "${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST##*.}" == "json" ]; then
-        MANIFEST_FILE="/host/tmp/kube-apiserver.json"
-        cp /host/${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${MANIFEST_FILE}
+        MANIFEST_FILE="/tmp/kube-apiserver.json"
+        cp /${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${MANIFEST_FILE}
         if [ $? -ne 0 ]; then
-            ERROR_MSG="Failed execute command: cp /host/${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${MANIFEST_FILE}"
+            ERROR_MSG="Failed execute command: cp /${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${MANIFEST_FILE}"
             update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
             exit $ERROR_FAILED_TO_COPY_FILE
         fi
         add_flags_to_manifest_file $MANIFEST_FILE $POD_NAME
     elif [ "${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST##*.}" == "yaml" ]; then
-        YAML_MANIFEST_FILE="/host/tmp/kube-apiserver.yaml"
-        JSON_MANIFEST_FILE="/host/tmp/kube-apiserver.json"
-        cp /host/${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${YAML_MANIFEST_FILE}
+        YAML_MANIFEST_FILE="/tmp/kube-apiserver.yaml"
+        JSON_MANIFEST_FILE="/tmp/kube-apiserver.json"
+        cp /${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${YAML_MANIFEST_FILE}
         if [ $? -ne 0 ]; then
-            ERROR_MSG="Failed execute command: cp /host/${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${YAML_MANIFEST_FILE}"
+            ERROR_MSG="Failed execute command: cp /${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST} ${YAML_MANIFEST_FILE}"
             update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
             exit $ERROR_FAILED_TO_COPY_FILE
         fi
@@ -224,24 +224,24 @@ if [ $? -eq 0 ]; then
     fi
 fi
 
-ls /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST &> /dev/null
+ls /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST &> /dev/null
 if [ $? -eq 0 ]; then
-    echo "[INFO] Found file: /host/${K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST}"
+    echo "[INFO] Found file: /${K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST}"
     if [ "${K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST##*.}" == "json" ]; then
-        MANIFEST_FILE="/host/tmp/kube-controller-manager.json"
-        cp /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $MANIFEST_FILE
+        MANIFEST_FILE="/tmp/kube-controller-manager.json"
+        cp /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $MANIFEST_FILE
         if [ $? -ne 0 ]; then
-            ERROR_MSG="Failed execute command: cp /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $MANIFEST_FILE"
+            ERROR_MSG="Failed execute command: cp /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $MANIFEST_FILE"
             update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
             exit $ERROR_FAILED_TO_COPY_FILE
         fi
         add_flags_to_manifest_file $MANIFEST_FILE $POD_NAME
     elif [ "${K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST##*.}" == "yaml" ]; then
-        YAML_MANIFEST_FILE="/host/tmp/kube-controller-manager.yaml"
-        JSON_MANIFEST_FILE="/host/tmp/kube-controller-manager.json"
-        cp /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $YAML_MANIFEST_FILE
+        YAML_MANIFEST_FILE="/tmp/kube-controller-manager.yaml"
+        JSON_MANIFEST_FILE="/tmp/kube-controller-manager.json"
+        cp /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $YAML_MANIFEST_FILE
         if [ $? -ne 0 ]; then
-            ERROR_MSG="Failed execute command: /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $YAML_MANIFEST_FILE"
+            ERROR_MSG="Failed execute command: /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST $YAML_MANIFEST_FILE"
             update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
             exit $ERROR_FAILED_TO_COPY_FILE
         fi
@@ -268,16 +268,16 @@ if [ $? -eq 0 ]; then
     fi
 fi
 
-ls /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE &> /dev/null
+ls /$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE &> /dev/null
 if [ $? -eq 0 ]; then
-    echo "[INFO] Found file: /host/${K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE}"
-    cp /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE /host/tmp/kubelet-service-configuration
+    echo "[INFO] Found file: /${K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE}"
+    cp /$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE /tmp/kubelet-service-configuration
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Failed execute command: cp /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE /host/tmp/kubelet-service-configuration"
+        ERROR_MSG="Failed execute command: cp /$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE /tmp/kubelet-service-configuration"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_FAILED_TO_COPY_FILE
     fi
-    eval "$(crudini --get --format=sh /host/tmp/kubelet-service-configuration Service ExecStart)"
+    eval "$(crudini --get --format=sh /tmp/kubelet-service-configuration Service ExecStart)"
     ExecStart=$(echo "${ExecStart//\\}")
     echo $ExecStart | grep "\-\-cloud-provider=vsphere" &> /dev/null
     if [ $? -eq 0 ]; then
@@ -306,7 +306,7 @@ if [ $? -eq 0 ]; then
         fi
     fi
 
-    echo ExecStart="$ExecStart" | crudini --merge /host/tmp/kubelet-service-configuration Service
+    echo ExecStart="$ExecStart" | crudini --merge /tmp/kubelet-service-configuration Service
     if [ $? -eq 0 ]; then
         echo "[INFO] Sucessfully updated kubelet.service configuration"
     else
@@ -318,47 +318,47 @@ fi
 
 # Copying Updated files from /tmp to its Originial place.
 IS_CONFIGURATION_UPDATED=false
-UPDATED_MANIFEST_FILE="/host/tmp/kube-controller-manager.json"
+UPDATED_MANIFEST_FILE="/tmp/kube-controller-manager.json"
 if [ "${K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST##*.}" == "yaml" ]; then
-    UPDATED_MANIFEST_FILE="/host/tmp/kube-controller-manager.yaml"
+    UPDATED_MANIFEST_FILE="/tmp/kube-controller-manager.yaml"
 fi
 if [ -f $UPDATED_MANIFEST_FILE ]; then
-    cp $UPDATED_MANIFEST_FILE /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST
+    cp $UPDATED_MANIFEST_FILE /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Failed execute command: cp $UPDATED_MANIFEST_FILE /host/$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST"
+        ERROR_MSG="Failed execute command: cp $UPDATED_MANIFEST_FILE /$K8S_SECRET_KUBERNETES_CONTROLLER_MANAGER_MANIFEST"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_FAILED_TO_COPY_FILE
     fi
     IS_CONFIGURATION_UPDATED=true
 fi
 
-UPDATED_MANIFEST_FILE="/host/tmp/kube-apiserver.json"
+UPDATED_MANIFEST_FILE="/tmp/kube-apiserver.json"
 if [ "${K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST##*.}" == "yaml" ]; then
-    UPDATED_MANIFEST_FILE="/host/tmp/kube-apiserver.yaml"
+    UPDATED_MANIFEST_FILE="/tmp/kube-apiserver.yaml"
 fi
 if [ -f $UPDATED_MANIFEST_FILE ]; then
-    cp $UPDATED_MANIFEST_FILE /host/$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST
+    cp $UPDATED_MANIFEST_FILE /$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Failed execute command: cp $UPDATED_MANIFEST_FILE /host/$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST"
+        ERROR_MSG="Failed execute command: cp $UPDATED_MANIFEST_FILE /$K8S_SECRET_KUBERNETES_API_SERVER_MANIFEST"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_FAILED_TO_COPY_FILE
     fi
     IS_CONFIGURATION_UPDATED=true
 fi
 
-if [ -f /host/tmp/vsphere.conf ]; then
-    cp /host/tmp/vsphere.conf /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf
+if [ -f /tmp/vsphere.conf ]; then
+    cp /tmp/vsphere.conf /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Failed execute command: cp /host/tmp/vsphere.conf /host/$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf"
+        ERROR_MSG="Failed execute command: cp /tmp/vsphere.conf /$K8S_SECRET_VCP_CONFIGURATION_FILE_LOCATION/vsphere.conf"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_FAILED_TO_COPY_FILE
     fi
 fi
 
-if [ -f /host/tmp/kubelet-service-configuration ]; then
-    cp /host/tmp/kubelet-service-configuration /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE
+if [ -f /tmp/kubelet-service-configuration ]; then
+    cp /tmp/kubelet-service-configuration /$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE
     if [ $? -ne 0 ]; then
-        ERROR_MSG="Failed execute command: cp /host/tmp/kubelet-service-configuration /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE"
+        ERROR_MSG="Failed execute command: cp /tmp/kubelet-service-configuration /$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE"
         update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
         exit $ERROR_FAILED_TO_COPY_FILE
     fi
@@ -375,7 +375,7 @@ update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_RUNNING" ""
 
 create_script_for_restarting_kubelet
 echo "[INFO] Reloading systemd manager configuration and restarting kubelet service"
-chroot /host /tmp/restart_kubelet.sh
+chroot  /tmp/restart_kubelet.sh
 if [ $? -eq 0 ]; then
     echo "[INFO] kubelet service restarted sucessfully"
     PHASE=$DAEMONSET_SCRIPT_PHASE8
@@ -384,5 +384,5 @@ else
     ERROR_MSG="Failed to restart kubelet service"
     update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
 fi
-rm -rf /host/tmp/vcp-rollback-complete
-touch /host/tmp/vcp-configuration-complete
+rm -rf /tmp/vcp-rollback-complete
+touch /tmp/vcp-configuration-complete
