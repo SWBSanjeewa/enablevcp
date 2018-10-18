@@ -78,7 +78,7 @@ PHASE=$DAEMONSET_SCRIPT_PHASE3
 update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_RUNNING" ""
 
 # Move Node VM to the VM Folder.
-govc object.mv -dc=$K8S_SECRET_DATACENTER $vmpath $K8S_SECRET_NODE_VMS_FOLDER &> /dev/null
+govc object.mv -dc=$K8S_SECRET_DATACENTER "$vmpath" $K8S_SECRET_NODE_VMS_FOLDER &> /dev/null
 if [ $? -eq 0 ]; then
     echo "[INFO] Moved Node Virtual Machine to the Working Directory Folder".
 else
