@@ -71,10 +71,11 @@ read_secret_keys() {
 }
 
 create_script_for_restarting_kubelet() {
-echo '#!/bin/sh
+
+echo "#!/bin/sh
 systemctl daemon-reload
 systemctl restart ${K8S_SECRET_KUBERNETES_KUBELET_SERVICE_NAME}
-' > /host/tmp/restart_kubelet.sh
+" > /host/tmp/restart_kubelet.sh
     chmod +x /host/tmp/restart_kubelet.sh
 }
 
