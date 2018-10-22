@@ -355,15 +355,6 @@ if [ -f /host/tmp/vsphere.conf ]; then
     fi
 fi
 
-if [ -f /host/tmp/kubelet-service-configuration ]; then
-    cp /host/tmp/kubelet-service-configuration /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE
-    if [ $? -ne 0 ]; then
-        ERROR_MSG="Failed execute command: cp /host/tmp/kubelet-service-configuration /host/$K8S_SECRET_KUBERNETES_KUBELET_SERVICE_CONFIGURATION_FILE"
-        update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
-        exit $ERROR_FAILED_TO_COPY_FILE
-    fi
-    IS_CONFIGURATION_UPDATED=true
-fi
 
 if [ "$IS_CONFIGURATION_UPDATED" == "false" ] ; then
     ERROR_MSG="No configuration change is observed"
@@ -372,6 +363,16 @@ if [ "$IS_CONFIGURATION_UPDATED" == "false" ] ; then
 fi
 PHASE=$DAEMONSET_SCRIPT_PHASE7
 update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_RUNNING" ""
+
+create_script_for_setting_kubelet_arguments
+echo "[INFO] Setting VCP snap parameters"
+chroot /host /tmp/setparams_kubelet.sh
+if [ $? -eq 0 ]; then
+    echo "[INFO] kubelet parameters set sucessfully"
+else
+    ERROR_MSG="Failed set kubelet parameters"
+    update_VcpConfigStatus "$POD_NAME" "$PHASE" "$DAEMONSET_PHASE_FAILED" "$ERROR_MSG"
+fi
 
 create_script_for_restarting_kubelet
 echo "[INFO] Reloading systemd manager configuration and restarting kubelet service"

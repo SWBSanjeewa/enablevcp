@@ -78,6 +78,16 @@ snap restart kubelet.daemon
     chmod +x /host/tmp/restart_kubelet.sh
 }
 
+
+create_script_for_setting_kubelet_arguments() {
+
+echo "#!/bin/sh
+snap set kubelet cloud-provider=vsphere
+snap set kubelet cloud-config=/etc/vsphereconf/vsphere.conf
+" > /host/tmp/setparams_kubelet.sh
+    chmod +x /host/tmp/setparams_kubelet.sh
+}
+
 create_role() {
     ROLE_NAME=$1
     govc role.ls $ROLE_NAME &> /dev/null
